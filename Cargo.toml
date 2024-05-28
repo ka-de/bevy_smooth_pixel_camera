@@ -4,13 +4,11 @@ version = "0.3.0"
 edition = "2021"
 authors = ["Doonv"]
 description = "Smooth pixel-perfect camera for Bevy"
-repository = "https://github.com/doonv/bevy_smooth_pixel_camera"
+repository = "https://github.com/ka-de/bevy_smooth_pixel_camera"
 categories = ["game-development", "graphics", "rendering"]
 exclude = ["assets/", ".github/"]
 keywords = ["game", "graphics", "bevy", "pixel", "pixel-perfect"]
-license = "MIT OR Apache-2.0"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "MIT"
 
 [dependencies]
 bevy = { git = "https://github.com/bevyengine/bevy", default-features = false, features = [
