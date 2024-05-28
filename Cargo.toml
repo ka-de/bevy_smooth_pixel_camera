@@ -11,13 +11,13 @@ keywords = ["game", "graphics", "bevy", "pixel", "pixel-perfect"]
 license = "MIT"
 
 [dependencies]
-bevy = { git = "https://github.com/bevyengine/bevy", default-features = false, features = [
+bevy = { version = "0.13.2", default-features = false, features = [
     "bevy_core_pipeline",
     "bevy_sprite",
 ] }
 
 [dev-dependencies]
-bevy = { git = "https://github.com/bevyengine/bevy" }
+bevy = { version = "0.13.2" }
 
 [lints]
 rust.missing_docs = "warn"
