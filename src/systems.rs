@@ -1,8 +1,8 @@
 use bevy::prelude::*;
-use bevy::render::camera::{RenderTarget, ScalingMode};
+use bevy::render::camera::{ RenderTarget, ScalingMode };
 use bevy::render::render_resource::*;
 use bevy::render::view::RenderLayers;
-use bevy::window::{PrimaryWindow, WindowRef};
+use bevy::window::{ PrimaryWindow, WindowRef };
 
 use crate::components::*;
 use crate::prelude::ViewportSize;
@@ -11,34 +11,34 @@ use crate::viewport::FitMode;
 pub(crate) fn init_camera(
     mut query: Query<
         (&PixelCamera, &mut Camera, Option<&RenderLayers>, Entity),
-        Added<PixelCamera>,
+        Added<PixelCamera>
     >,
     window_query: Query<&Window>,
     mut images: ResMut<Assets<Image>>,
-    mut commands: Commands,
+    mut commands: Commands
 ) {
-    let window = window_query.single();
+    let Ok(window) = window_query.get_single() else {
+        warn!("Window is closed.");
+        return;
+    };
 
     for (
-        PixelCamera {
-            viewport_order,
-            viewport_size,
-            viewport_layer,
-            smoothing,
-            ..
-        },
+        PixelCamera { viewport_order, viewport_size, viewport_layer, smoothing, .. },
         mut camera,
         world_layer,
         entity,
-    ) in &mut query
-    {
+    ) in &mut query {
         if let Some(world_layer) = world_layer {
             if world_layer.intersects(viewport_layer) {
-                error!("The render layers of the world intersect with the render layers of the viewport camera");
+                error!(
+                    "The render layers of the world intersect with the render layers of the viewport camera"
+                );
                 return;
             }
         } else if viewport_layer.intersects(&RenderLayers::layer(0)) {
-            error!("The render layers of the viewport camera intersect with the default render layer of the world");
+            error!(
+                "The render layers of the viewport camera intersect with the default render layer of the world"
+            );
             return;
         } else if *viewport_layer == RenderLayers::none() {
             error!("The viewport camera has no render layers and will be rendered on the world");
@@ -46,7 +46,9 @@ pub(crate) fn init_camera(
         }
 
         if &camera.order >= viewport_order {
-            error!("The camera is configured to render later or at the same time as of the viewport camera. (camera.order >= viewport_camera.order)");
+            error!(
+                "The camera is configured to render later or at the same time as of the viewport camera. (camera.order >= viewport_camera.order)"
+            );
             return;
         }
 
@@ -65,9 +67,9 @@ pub(crate) fn init_camera(
                 format: TextureFormat::Bgra8UnormSrgb,
                 mip_level_count: 1,
                 sample_count: 1,
-                usage: TextureUsages::TEXTURE_BINDING
-                    | TextureUsages::COPY_DST
-                    | TextureUsages::RENDER_ATTACHMENT,
+                usage: TextureUsages::TEXTURE_BINDING |
+                TextureUsages::COPY_DST |
+                TextureUsages::RENDER_ATTACHMENT,
                 view_formats: &[],
             },
             ..default()
@@ -101,8 +103,8 @@ pub(crate) fn init_camera(
                         ..default()
                     },
                     projection: OrthographicProjection {
-                        far: 1000.,
-                        near: -1000.,
+                        far: 1000.0,
+                        near: -1000.0,
                         scaling_mode: ScalingMode::Fixed {
                             width: (size.width - 2) as f32,
                             height: (size.height - 2) as f32,
@@ -127,27 +129,22 @@ pub(crate) fn init_camera(
 pub(crate) fn update_viewport_size(
     primary_cameras: Query<
         (Entity, &PixelCamera, &Camera, &PixelViewportReferences),
-        Without<ViewportCamera>,
+        Without<ViewportCamera>
     >,
     mut viewport_cameras: Query<(&mut OrthographicProjection, &mut Camera), With<ViewportCamera>>,
     windows: Query<Ref<Window>>,
     primary_window: Query<Ref<Window>, With<PrimaryWindow>>,
-    mut images: ResMut<Assets<Image>>,
+    mut images: ResMut<Assets<Image>>
 ) {
     for (
         entity,
-        PixelCamera {
-            viewport_size,
-            smoothing,
-            ..
-        },
+        PixelCamera { viewport_size, smoothing, .. },
         camera,
         viewport,
-    ) in &primary_cameras
-    {
-        let Ok((mut viewport_projection, mut viewport_camera)) =
-            viewport_cameras.get_mut(viewport.camera)
-        else {
+    ) in &primary_cameras {
+        let Ok((mut viewport_projection, mut viewport_camera)) = viewport_cameras.get_mut(
+            viewport.camera
+        ) else {
             error!("PixelCamera {entity:?}'s viewport camera no longer exists.");
             continue;
         };
@@ -158,7 +155,9 @@ pub(crate) fn update_viewport_size(
                         if let Ok(window) = primary_window.get_single() {
                             window
                         } else {
-                            error!("The primary window that the PixelCamera is pointing to doesn't exist.");
+                            error!(
+                                "The primary window that the PixelCamera is pointing to doesn't exist."
+                            );
                             continue;
                         }
                     }
@@ -166,7 +165,9 @@ pub(crate) fn update_viewport_size(
                         if let Ok(window) = windows.get(entity) {
                             window
                         } else {
-                            error!("Window {entity:?} that the PixelCamera is pointing to doesn't exist.");
+                            error!(
+                                "Window {entity:?} that the PixelCamera is pointing to doesn't exist."
+                            );
                             continue;
                         }
                     }
@@ -181,9 +182,7 @@ pub(crate) fn update_viewport_size(
                 (new_size, aspect_ratio)
             }
             RenderTarget::Image(image) => {
-                let image = images
-                    .get(image)
-                    .expect("RenderTarget::Image doesn't exist");
+                let image = images.get(image).expect("RenderTarget::Image doesn't exist");
                 let size = image.size();
 
                 let new_size = Extent3d {
@@ -191,7 +190,7 @@ pub(crate) fn update_viewport_size(
                     height: size.y,
                     ..default()
                 };
-                let aspect_ratio = size.x as f32 / size.y as f32;
+                let aspect_ratio = (size.x as f32) / (size.y as f32);
 
                 (new_size, aspect_ratio)
             }
@@ -203,21 +202,21 @@ pub(crate) fn update_viewport_size(
             }
         };
 
-        viewport_projection.scaling_mode = if let ViewportSize::Fixed { fit, .. }
-        | ViewportSize::Custom { fit, .. } = viewport_size
+        viewport_projection.scaling_mode = if
+            let ViewportSize::Fixed { fit, .. } | ViewportSize::Custom { fit, .. } = viewport_size
         {
             match fit {
                 FitMode::Fit(clear_color) => {
                     viewport_camera.clear_color = clear_color.clone();
-                    if aspect_ratio > new_size.width as f32 / new_size.height as f32 {
+                    if aspect_ratio > (new_size.width as f32) / (new_size.height as f32) {
                         ScalingMode::Fixed {
-                            width: new_size.height as f32 * (aspect_ratio),
+                            width: (new_size.height as f32) * aspect_ratio,
                             height: new_size.height as f32,
                         }
                     } else {
                         ScalingMode::Fixed {
                             width: new_size.width as f32,
-                            height: new_size.width as f32 / (aspect_ratio),
+                            height: (new_size.width as f32) / aspect_ratio,
                         }
                     }
                 }
@@ -226,19 +225,20 @@ pub(crate) fn update_viewport_size(
                     if aspect_ratio > 1.0 {
                         ScalingMode::Fixed {
                             width: axis as f32,
-                            height: axis as f32 / (aspect_ratio),
+                            height: (axis as f32) / aspect_ratio,
                         }
                     } else {
                         ScalingMode::Fixed {
-                            width: axis as f32 * (aspect_ratio),
+                            width: (axis as f32) * aspect_ratio,
                             height: axis as f32,
                         }
                     }
                 }
-                FitMode::Stretch => ScalingMode::Fixed {
-                    width: new_size.width as f32,
-                    height: new_size.height as f32,
-                },
+                FitMode::Stretch =>
+                    ScalingMode::Fixed {
+                        width: new_size.width as f32,
+                        height: new_size.height as f32,
+                    },
             }
         } else {
             ScalingMode::Fixed {
@@ -275,28 +275,17 @@ pub(crate) fn smooth_camera(
     mut cameras: Query<(&PixelCamera, &PixelViewportReferences)>,
     mut viewports: Query<
         (&mut Sprite, &Handle<Image>),
-        (With<PixelViewport>, Without<PixelViewportReferences>),
+        (With<PixelViewport>, Without<PixelViewportReferences>)
     >,
-    images: Res<Assets<Image>>,
+    images: Res<Assets<Image>>
 ) {
-    for (
-        PixelCamera {
-            subpixel_pos,
-            smoothing,
-            ..
-        },
-        viewport,
-    ) in &mut cameras
-    {
+    for (PixelCamera { subpixel_pos, smoothing, .. }, viewport) in &mut cameras {
         if !smoothing {
             continue;
         }
         let (mut sprite, handle) = viewports.get_mut(viewport.sprite).unwrap();
         let Some(image) = images.get(handle) else {
-            error!(
-                "Pixel camera viewport ({:?}) image doesn't exist",
-                viewport.sprite
-            );
+            error!("Pixel camera viewport ({:?}) image doesn't exist", viewport.sprite);
             continue;
         };
 
@@ -313,6 +302,6 @@ pub(crate) fn smooth_camera(
         sprite.rect = Some(Rect {
             min: Vec2::ONE + remainder,
             max: image.size_f32() - Vec2::ONE + remainder,
-        })
+        });
     }
 }
